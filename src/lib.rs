@@ -1,7 +1,7 @@
 //! # parse-more
-//! Parse-more is an extension of the [syn::parse::Parse] trait, allowing to parse input from procedural macros directly, without having to create a custom structure and implementing the [syn::parse::Parse] trait on it.
+//! Parse-more is an extension of the [syn::parse::Parse] trait from the [syn](https://docs.rs/syn/) crate, allowing to parse input from procedural macros directly, without having to create a custom structure and implementing the [syn::parse::Parse] trait on it.
 //!
-//! It provides classic [syn] macros and functions variant, using the [ParseMore] trait instead.
+//! It provides classic [syn](https://docs.rs/syn/) macros and functions variant, using the [ParseMore] trait instead.
 //!
 //! # Example
 //!
