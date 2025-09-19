@@ -1,0 +1,13 @@
+[package]
+name = "parse-more-tests"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full"] }
+parse-more = { path = ".." }
+
+[lib]
+proc-macro = true

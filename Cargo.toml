@@ -1,0 +1,18 @@
+[package]
+name = "parse-more"
+description = "Extension of the `Parse` trait from syn, allowing to parse input from procedural macros directly, without having to create a custom structure and implementing the `Parse` trait on it."
+version = "0.1.0" 
+edition = "2024"
+license = "MIT"
+keywords = [ "macros", "syn" ]
+repository = "https://github.com/supersurviveur/parse-more"
+exclude = [
+  "parse-more-tests"
+]
+
+[dependencies]
+proc-macro2 = "1"
+syn = { version = "2", features = ["full"] }
+
+[dev-dependencies]
+quote = "1"
