@@ -1,7 +1,11 @@
 [package]
 name = "parse-more-macros"
+description = "Procedural macros for the parse-more crate."
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+keywords = [ "macros", "syn" ]
+repository = "https://github.com/supersurviveur/parse-more"
 
 [lib]
 proc-macro = true

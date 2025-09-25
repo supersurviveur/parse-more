@@ -7,13 +7,14 @@ license = "MIT"
 keywords = [ "macros", "syn" ]
 repository = "https://github.com/supersurviveur/parse-more"
 exclude = [
-  "parse-more-tests"
+  "parse-more-tests",
+  "parse-more-macros"
 ]
 
 [dependencies]
 proc-macro2 = "1"
 syn = { version = "2", features = ["full"] }
-parse-more-macros = { path = "parse-more-macros" }
+parse-more-macros = { path = "parse-more-macros", version = "0.1.0" }
 
 [dev-dependencies]
 quote = "1"
