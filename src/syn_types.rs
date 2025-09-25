@@ -2,26 +2,10 @@
 
 use crate::{parse_more_auto_impl, ParseMore};
 
-/// Tokens types implements [syn::parse::Parse], but `Option<Token>` also implements [syn::parse::Parse]
-macro_rules! parse_more_tokens_impls {
-    ($($ty:ty),*) => {
-        parse_more_auto_impl! {
-            $($ty),*
-        }
-        parse_more_auto_impl! {
-            $(Option<$ty>),*
-        }
-    };
-}
-
 // A macro is used to generate ParseMore instead of generics to avoid any "upstream crates may add a new impl of trait" errors
 // See https://docs.rs/syn/latest/syn/parse/trait.Parse.html
 parse_more_auto_impl! {
     // Foreign types
-    Option<syn::Abi>,
-    Option<syn::BoundLifetimes>,
-    Option<syn::Label>,
-    Option<syn::WhereClause>,
     proc_macro2::TokenStream,
 
     // Implementors
@@ -158,11 +142,10 @@ parse_more_auto_impl! {
     syn::TypeTuple,
     syn::Variant,
     syn::WhereClause,
-    syn::parse::Nothing
-}
+    syn::parse::Nothing,
 
-// See https://docs.rs/syn/latest/syn/token/trait.Token.html
-parse_more_tokens_impls! {
+    // See https://docs.rs/syn/latest/syn/token/trait.Token.html
+
     // Foreign Types
     proc_macro2::TokenTree,
     proc_macro2::Group,

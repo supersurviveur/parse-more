@@ -17,13 +17,13 @@
 //! # };
 //! pub fn complex_args(input: TokenStream) -> TokenStream {
 //!    let content = parse_more_macro_input!(
-//!        input as Punctuated<Concat<(Ident, Token![=>], Braced<(Ident, Expr)>)>, Token![,]>
+//!        input as Punctuated<Concat<Ident, Token![=>], Braced<(Ident, Expr)>>, Token![,]>
 //!    );
 //!    content
 //!        .into_iter()
 //!        .map(|concat| {
 //!            // Second item is discarded (it's the => arrow)
-//!            let (ident, _, Braced((other_ident, literal))) = concat.value();
+//!            let (ident, _, Braced((other_ident, literal))) = concat.into();
 //!            quote! {
 //!                println!("{}: {} versus other type {}", #literal, (-1i8) as #ident, (-1i8) as #other_ident);
 //!            }
@@ -52,7 +52,15 @@ extern crate proc_macro;
 
 pub mod syn_types;
 
-use syn::{braced, bracketed, parenthesized, parse::Parse, punctuated::Punctuated};
+/// Re-export proc macro.
+pub use parse_more_macros::{filler, parse_more};
+
+use syn::{
+    braced, bracketed, parenthesized,
+    parse::{Nothing, Parse},
+    punctuated::Punctuated,
+    LitInt, LitStr,
+};
 
 /// Parsing interface implemented by all types from the [syn] crate which already implement [syn::parse::Parse], and some others usefull ones.
 /// Use the [parse_more_auto_impl] macros to easily implement [ParseMore] on a type which already implement [syn::parse::Parse].
@@ -62,7 +70,7 @@ pub trait ParseMore: Sized {
 
 /// This wrapper implements [syn::parse::Parse] when T implements [ParseMore]. It permits to use this wrapper and a type implementing [ParseMore] in a parsing function from [syn].
 ///
-/// You should probably use [parse_more], [parse_more_macro_input], or any other function from this crate instead of using this type directly.
+/// You should probably use [parse_more()], [parse_more_macro_input], or any other function from this crate instead of using this type directly.
 ///
 /// # Example
 ///
@@ -95,7 +103,7 @@ impl<T: ParseMore> Parse for ParseMoreWrapper<T> {
 /// This macro auto-implements the [ParseMore] traits on its arguments, which *MUST* implement the [syn::parse::Parse] trait.
 /// It allows using custom types inside of any parse-more macros/functions.
 ///
-/// FIXME: create a derive macro to handle this.
+/// See the [macro@parse_more] macro.
 ///
 /// # Example
 ///
@@ -299,29 +307,58 @@ impl<T: ParseMore, P: ParseMore> ParseMore for Punctuated<T, P> {
 
 /// Parse successive items.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Concat<T>(pub T);
-
-/// Imlement [ParseMore] for the [Concat] type.
-macro_rules! concat_impls {
-    ($($generics:ident)*) => {
-        impl<$($generics: ParseMore),*> ParseMore for Concat<($($generics,)*)> {
-            fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-                Ok(Self((
-                    $(input.parse::<ParseMoreWrapper<$generics>>()?.0,)*
-                )))
-            }
-        }
-    };
+pub struct Concat<A, B, C = Nothing, D = Nothing> {
+    first: A,
+    second: B,
+    third: C,
+    fourth: D,
 }
 
-impl<T> Concat<T> {
-    /// Get the parsed value, as a tuple containing all items.
-    pub fn value(self) -> T {
-        self.0
+impl<A, B, C, D> From<Concat<A, B, C, D>> for (A, B, C, D) {
+    fn from(value: Concat<A, B, C, D>) -> Self {
+        (value.first, value.second, value.third, value.fourth)
+    }
+}
+impl<A, B, C> From<Concat<A, B, C>> for (A, B, C) {
+    fn from(value: Concat<A, B, C>) -> Self {
+        (value.first, value.second, value.third)
+    }
+}
+impl<A, B> From<Concat<A, B>> for (A, B) {
+    fn from(value: Concat<A, B>) -> Self {
+        (value.first, value.second)
+    }
+}
+impl<A, B> Concat<A, B, Nothing, Nothing> {
+    /// Convert itself to a tuple containing the parsed values.
+    pub fn into_tuple2(self) -> (A, B) {
+        self.into()
+    }
+}
+impl<A, B, C> Concat<A, B, C, Nothing> {
+    /// Convert itself to a tuple containing the parsed values.
+    pub fn into_tuple3(self) -> (A, B, C) {
+        self.into()
+    }
+}
+impl<A, B, C, D> Concat<A, B, C, D> {
+    /// Convert itself to a tuple containing the parsed values.
+    pub fn into_tuple4(self) -> (A, B, C, D) {
+        self.into()
     }
 }
 
-for_each_tuple! { concat_impls }
+/// Imlement [ParseMore] for the [Concat] type.
+impl<A: ParseMore, B: ParseMore, C: ParseMore, D: ParseMore> ParseMore for Concat<A, B, C, D> {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            first: input.parse::<ParseMoreWrapper<_>>()?.0,
+            second: input.parse::<ParseMoreWrapper<_>>()?.0,
+            third: input.parse::<ParseMoreWrapper<_>>()?.0,
+            fourth: input.parse::<ParseMoreWrapper<_>>()?.0,
+        })
+    }
+}
 
 /// Parse an item surrounded by braces.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -380,6 +417,118 @@ impl<T> Bracketed<T> {
     /// Get the parsed value.
     pub fn value(self) -> T {
         self.0
+    }
+}
+
+/// Imlement [ParseMore] for the [Option] type.
+impl<T: ParseMore> ParseMore for Option<T> {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        // Fork the input to be sure to don't advance the cursor if the parsing fails.
+        let input_forked = input.fork();
+        if let Ok(parsed) = input_forked.parse::<ParseMoreWrapper<T>>() {
+            // Parse it on the primary stream too to advance the cursor
+            // It should not fails.
+            assert!(input.parse::<ParseMoreWrapper<T>>().is_ok());
+            Ok(Some(parsed.0))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+/// Parse an item surrounded by brackets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Invalid;
+
+/// Imlement [ParseMore] for the [Invalid] type.
+impl ParseMore for Invalid {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Err(syn::Error::new(input.span(), "Invalid can never be parsed"))
+    }
+}
+
+/// Parse an item in a given list. If multiple types can be parsed, the first one is chosen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Either<A, B, C = Invalid, D = Invalid> {
+    First(A),
+    Second(B),
+    Third(C),
+    Fourth(D),
+}
+
+impl<A, B, C, D> Either<A, B, C, D> {
+    /// Check if the type of the parsed value is the first one.
+    pub fn is_first(&self) -> bool {
+        matches!(self, Either::First(_))
+    }
+    /// Check if the type of the parsed value is the second one.
+    pub fn is_second(&self) -> bool {
+        matches!(self, Either::Second(_))
+    }
+    /// Check if the type of the parsed value is the third one.
+    pub fn is_third(&self) -> bool {
+        matches!(self, Either::Third(_))
+    }
+    /// Check if the type of the parsed value is the fourth one.
+    pub fn is_fourth(&self) -> bool {
+        matches!(self, Either::Fourth(_))
+    }
+}
+
+/// Imlement [ParseMore] for the [Either] type.
+impl<A: ParseMore, B: ParseMore, C: ParseMore, D: ParseMore> ParseMore for Either<A, B, C, D> {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut err;
+        match input.fork().parse::<ParseMoreWrapper<A>>() {
+            Ok(_) => return Ok(Self::First(input.parse::<ParseMoreWrapper<A>>().unwrap().0)),
+            Err(e) => err = e,
+        }
+        match input.fork().parse::<ParseMoreWrapper<B>>() {
+            Ok(_) => {
+                return Ok(Self::Second(
+                    input.parse::<ParseMoreWrapper<B>>().unwrap().0,
+                ))
+            }
+            Err(e) => err.combine(e),
+        }
+        match input.fork().parse::<ParseMoreWrapper<C>>() {
+            Ok(_) => return Ok(Self::Third(input.parse::<ParseMoreWrapper<C>>().unwrap().0)),
+            Err(e) => err.combine(e),
+        }
+        match input.fork().parse::<ParseMoreWrapper<D>>() {
+            Ok(_) => {
+                return Ok(Self::Fourth(
+                    input.parse::<ParseMoreWrapper<D>>().unwrap().0,
+                ))
+            }
+            Err(e) => err.combine(e),
+        }
+        Err(err)
+    }
+}
+
+macro_rules! integer_impls {
+    ($($ty:ty),*) => {
+        $(
+            /// Imlement [ParseMore] for the [u8] type.
+            impl ParseMore for $ty {
+                fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+                    input.parse::<LitInt>()?.base10_parse::<Self>()
+                }
+            }
+        )*
+    };
+}
+
+integer_impls! {
+    u8, u16, u32, u64, u128, usize,
+    i8, i16, i32, i64, i128, isize
+}
+
+/// Imlement [ParseMore] for the [String] type.
+impl ParseMore for String {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Ok(input.parse::<LitStr>()?.value())
     }
 }
 

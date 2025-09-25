@@ -53,7 +53,7 @@ Add to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-parse-more = "0.1"
+parse-more = "0.2"
 ```
 
 ## Contribution

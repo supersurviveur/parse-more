@@ -12,7 +12,11 @@ tests_wrapper! {
     test_tuple,
     test_punctuated,
     test_concat,
+    test_either,
     test_braced,
     test_parenthesized,
-    test_bracketed
+    test_bracketed,
+    test_option,
+    test_derivation,
+    test_primitives
 }
