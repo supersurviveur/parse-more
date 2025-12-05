@@ -52,6 +52,9 @@ extern crate proc_macro;
 
 pub mod syn_types;
 
+/// Re-export `crate` as `parse_more` to use the `parse_more` macro easily.
+pub use crate as parse_more;
+
 /// Re-export proc macro.
 pub use parse_more_macros::{filler, parse_more};
 
@@ -307,6 +310,7 @@ impl<T: ParseMore, P: ParseMore> ParseMore for Punctuated<T, P> {
 
 /// Parse successive items.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[parse_more]
 pub struct Concat<A, B, C = Nothing, D = Nothing, E = Nothing, F = Nothing, G = Nothing> {
     first: A,
     second: B,
@@ -405,30 +409,6 @@ impl<A, B, C, D, E, F, G> Concat<A, B, C, D, E, F, G> {
     }
 }
 
-/// Imlement [ParseMore] for the [Concat] type.
-impl<
-        A: ParseMore,
-        B: ParseMore,
-        C: ParseMore,
-        D: ParseMore,
-        E: ParseMore,
-        F: ParseMore,
-        G: ParseMore,
-    > ParseMore for Concat<A, B, C, D, E, F, G>
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            first: input.parse::<ParseMoreWrapper<_>>()?.0,
-            second: input.parse::<ParseMoreWrapper<_>>()?.0,
-            third: input.parse::<ParseMoreWrapper<_>>()?.0,
-            fourth: input.parse::<ParseMoreWrapper<_>>()?.0,
-            fifth: input.parse::<ParseMoreWrapper<_>>()?.0,
-            sixth: input.parse::<ParseMoreWrapper<_>>()?.0,
-            seventh: input.parse::<ParseMoreWrapper<_>>()?.0,
-        })
-    }
-}
-
 /// Parse an item surrounded by braces.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Braced<T>(pub T);
@@ -518,6 +498,7 @@ impl ParseMore for Invalid {
 
 /// Parse an item in a given list. If multiple types can be parsed, the first one is chosen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[parse_more]
 pub enum Either<A, B, C = Invalid, D = Invalid, E = Invalid, F = Invalid, G = Invalid> {
     First(A),
     Second(B),
@@ -556,63 +537,6 @@ impl<A, B, C, D, E, F, G> Either<A, B, C, D, E, F, G> {
     /// Check if the type of the parsed value is the seveth one.
     pub fn is_seventh(&self) -> bool {
         matches!(self, Either::Seventh(_))
-    }
-}
-
-/// Imlement [ParseMore] for the [Either] type.
-impl<
-        A: ParseMore,
-        B: ParseMore,
-        C: ParseMore,
-        D: ParseMore,
-        E: ParseMore,
-        F: ParseMore,
-        G: ParseMore,
-    > ParseMore for Either<A, B, C, D, E, F, G>
-{
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let mut err;
-        match input.fork().parse::<ParseMoreWrapper<A>>() {
-            Ok(_) => return Ok(Self::First(input.parse::<ParseMoreWrapper<A>>().unwrap().0)),
-            Err(e) => err = e,
-        }
-        match input.fork().parse::<ParseMoreWrapper<B>>() {
-            Ok(_) => {
-                return Ok(Self::Second(
-                    input.parse::<ParseMoreWrapper<B>>().unwrap().0,
-                ))
-            }
-            Err(e) => err.combine(e),
-        }
-        match input.fork().parse::<ParseMoreWrapper<C>>() {
-            Ok(_) => return Ok(Self::Third(input.parse::<ParseMoreWrapper<C>>().unwrap().0)),
-            Err(e) => err.combine(e),
-        }
-        match input.fork().parse::<ParseMoreWrapper<D>>() {
-            Ok(_) => {
-                return Ok(Self::Fourth(
-                    input.parse::<ParseMoreWrapper<D>>().unwrap().0,
-                ))
-            }
-            Err(e) => err.combine(e),
-        }
-        match input.fork().parse::<ParseMoreWrapper<E>>() {
-            Ok(_) => return Ok(Self::Fifth(input.parse::<ParseMoreWrapper<E>>().unwrap().0)),
-            Err(e) => err.combine(e),
-        }
-        match input.fork().parse::<ParseMoreWrapper<F>>() {
-            Ok(_) => return Ok(Self::Sixth(input.parse::<ParseMoreWrapper<F>>().unwrap().0)),
-            Err(e) => err.combine(e),
-        }
-        match input.fork().parse::<ParseMoreWrapper<G>>() {
-            Ok(_) => {
-                return Ok(Self::Seventh(
-                    input.parse::<ParseMoreWrapper<G>>().unwrap().0,
-                ))
-            }
-            Err(e) => err.combine(e),
-        }
-        Err(err)
     }
 }
 

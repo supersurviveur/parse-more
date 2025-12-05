@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote};
-use syn::{spanned::Spanned, Attribute, ItemEnum, ItemStruct};
+use syn::{parse_quote, spanned::Spanned, Attribute, ItemEnum, ItemStruct};
 
 /// Auto-implements the parse_more::ParseMore trait on an item.
 ///
@@ -21,6 +21,20 @@ use syn::{spanned::Spanned, Attribute, ItemEnum, ItemStruct};
 pub fn parse_more(_args: TokenStream, input: TokenStream) -> TokenStream {
     if let Ok(mut struct_item) = syn::parse::<ItemStruct>(input.clone()) {
         let struct_ident = &struct_item.ident;
+
+        let mut named_generics = struct_item.generics.clone();
+        named_generics.params.iter_mut().for_each(|param| match param {
+            syn::GenericParam::Type(type_param) => type_param.default = None,
+            syn::GenericParam::Const(const_param) => const_param.default = None,
+            _ => {}
+        });
+        let mut generics = named_generics.clone();
+        generics.params.iter_mut().for_each(|param| match param {
+            syn::GenericParam::Type(type_param) => {
+                type_param.bounds.push(syn::TypeParamBound::Trait(parse_quote!(parse_more::ParseMore)));
+            },
+            _ => {}
+        });
 
         let mut parsed = vec![];
         let mut field_idents = vec![];
@@ -67,7 +81,7 @@ pub fn parse_more(_args: TokenStream, input: TokenStream) -> TokenStream {
 
         quote! {
             #struct_item
-            impl parse_more::ParseMore for #struct_ident {
+            impl #generics parse_more::ParseMore for #struct_ident #named_generics {
                 fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
                     #(#parsed)*
                     Ok(Self {
@@ -78,6 +92,20 @@ pub fn parse_more(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     } else if let Ok(enum_item) = syn::parse::<ItemEnum>(input) {
         let enum_ident = &enum_item.ident;
+
+        let mut named_generics = enum_item.generics.clone();
+        named_generics.params.iter_mut().for_each(|param| match param {
+            syn::GenericParam::Type(type_param) => type_param.default = None,
+            syn::GenericParam::Const(const_param) => const_param.default = None,
+            _ => {}
+        });
+        let mut generics = named_generics.clone();
+        generics.params.iter_mut().for_each(|param| match param {
+            syn::GenericParam::Type(type_param) => {
+                type_param.bounds.push(syn::TypeParamBound::Trait(parse_quote!(parse_more::ParseMore)));
+            },
+            _ => {}
+        });
 
         let mut parsed = vec![];
 
@@ -112,7 +140,7 @@ pub fn parse_more(_args: TokenStream, input: TokenStream) -> TokenStream {
 
         quote! {
             #enum_item
-            impl parse_more::ParseMore for #enum_ident {
+            impl #generics parse_more::ParseMore for #enum_ident #named_generics {
                 fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
                     let mut err;
                     #(#parsed)*
