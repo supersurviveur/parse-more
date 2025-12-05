@@ -1,7 +1,7 @@
 [package]
 name = "parse-more"
 description = "Extension of the `Parse` trait from syn, allowing to parse input from procedural macros directly, without having to create a custom structure and implementing the `Parse` trait on it."
-version = "0.2.0" 
+version = "0.2.1" 
 edition = "2024"
 license = "MIT"
 keywords = [ "macros", "syn" ]

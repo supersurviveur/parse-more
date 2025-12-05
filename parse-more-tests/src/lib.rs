@@ -165,6 +165,12 @@ pub fn test_concat(_: TokenStream) -> TokenStream {
     .into();
     let parsed = parse_more::<Concat<Ident, Ident, Ident>>(input);
     proc_assert!(parsed.is_err());
+    let input = quote! {
+        a b c d e f g
+    }
+    .into();
+    let parsed = parse_more::<Concat<Ident, Ident, Ident, Ident, Ident, Ident, Ident>>(input);
+    proc_assert!(parsed.is_ok());
     quote! {}.into()
 }
 
@@ -282,6 +288,15 @@ pub fn test_either(_: TokenStream) -> TokenStream {
     let parsed = parse_more::<Either<Ident, Token![=>]>>(input);
     proc_assert!(parsed.is_ok());
     proc_assert!(parsed.unwrap().is_second());
+    let input = quote! {
+        !
+    }
+    .into();
+    let parsed = parse_more::<
+        Either<Ident, Token![=>], Token![?], Token![,], Token![=], Token![>], Token![!]>,
+    >(input);
+    proc_assert!(parsed.is_ok());
+    proc_assert!(parsed.unwrap().is_seventh());
 
     quote! {}.into()
 }

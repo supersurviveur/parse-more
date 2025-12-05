@@ -307,13 +307,52 @@ impl<T: ParseMore, P: ParseMore> ParseMore for Punctuated<T, P> {
 
 /// Parse successive items.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Concat<A, B, C = Nothing, D = Nothing> {
+pub struct Concat<A, B, C = Nothing, D = Nothing, E = Nothing, F = Nothing, G = Nothing> {
     first: A,
     second: B,
     third: C,
     fourth: D,
+    fifth: E,
+    sixth: F,
+    seventh: G,
 }
 
+impl<A, B, C, D, E, F, G> From<Concat<A, B, C, D, E, F, G>> for (A, B, C, D, E, F, G) {
+    fn from(value: Concat<A, B, C, D, E, F, G>) -> Self {
+        (
+            value.first,
+            value.second,
+            value.third,
+            value.fourth,
+            value.fifth,
+            value.sixth,
+            value.seventh,
+        )
+    }
+}
+impl<A, B, C, D, E, F> From<Concat<A, B, C, D, E, F>> for (A, B, C, D, E, F) {
+    fn from(value: Concat<A, B, C, D, E, F>) -> Self {
+        (
+            value.first,
+            value.second,
+            value.third,
+            value.fourth,
+            value.fifth,
+            value.sixth,
+        )
+    }
+}
+impl<A, B, C, D, E> From<Concat<A, B, C, D, E>> for (A, B, C, D, E) {
+    fn from(value: Concat<A, B, C, D, E>) -> Self {
+        (
+            value.first,
+            value.second,
+            value.third,
+            value.fourth,
+            value.fifth,
+        )
+    }
+}
 impl<A, B, C, D> From<Concat<A, B, C, D>> for (A, B, C, D) {
     fn from(value: Concat<A, B, C, D>) -> Self {
         (value.first, value.second, value.third, value.fourth)
@@ -329,13 +368,13 @@ impl<A, B> From<Concat<A, B>> for (A, B) {
         (value.first, value.second)
     }
 }
-impl<A, B> Concat<A, B, Nothing, Nothing> {
+impl<A, B> Concat<A, B> {
     /// Convert itself to a tuple containing the parsed values.
     pub fn into_tuple2(self) -> (A, B) {
         self.into()
     }
 }
-impl<A, B, C> Concat<A, B, C, Nothing> {
+impl<A, B, C> Concat<A, B, C> {
     /// Convert itself to a tuple containing the parsed values.
     pub fn into_tuple3(self) -> (A, B, C) {
         self.into()
@@ -347,15 +386,45 @@ impl<A, B, C, D> Concat<A, B, C, D> {
         self.into()
     }
 }
+impl<A, B, C, D, E> Concat<A, B, C, D, E> {
+    /// Convert itself to a tuple containing the parsed values.
+    pub fn into_tuple5(self) -> (A, B, C, D, E) {
+        self.into()
+    }
+}
+impl<A, B, C, D, E, F> Concat<A, B, C, D, E, F> {
+    /// Convert itself to a tuple containing the parsed values.
+    pub fn into_tuple6(self) -> (A, B, C, D, E, F) {
+        self.into()
+    }
+}
+impl<A, B, C, D, E, F, G> Concat<A, B, C, D, E, F, G> {
+    /// Convert itself to a tuple containing the parsed values.
+    pub fn into_tuple7(self) -> (A, B, C, D, E, F, G) {
+        self.into()
+    }
+}
 
 /// Imlement [ParseMore] for the [Concat] type.
-impl<A: ParseMore, B: ParseMore, C: ParseMore, D: ParseMore> ParseMore for Concat<A, B, C, D> {
+impl<
+        A: ParseMore,
+        B: ParseMore,
+        C: ParseMore,
+        D: ParseMore,
+        E: ParseMore,
+        F: ParseMore,
+        G: ParseMore,
+    > ParseMore for Concat<A, B, C, D, E, F, G>
+{
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Ok(Self {
             first: input.parse::<ParseMoreWrapper<_>>()?.0,
             second: input.parse::<ParseMoreWrapper<_>>()?.0,
             third: input.parse::<ParseMoreWrapper<_>>()?.0,
             fourth: input.parse::<ParseMoreWrapper<_>>()?.0,
+            fifth: input.parse::<ParseMoreWrapper<_>>()?.0,
+            sixth: input.parse::<ParseMoreWrapper<_>>()?.0,
+            seventh: input.parse::<ParseMoreWrapper<_>>()?.0,
         })
     }
 }
@@ -449,14 +518,17 @@ impl ParseMore for Invalid {
 
 /// Parse an item in a given list. If multiple types can be parsed, the first one is chosen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Either<A, B, C = Invalid, D = Invalid> {
+pub enum Either<A, B, C = Invalid, D = Invalid, E = Invalid, F = Invalid, G = Invalid> {
     First(A),
     Second(B),
     Third(C),
     Fourth(D),
+    Fifth(E),
+    Sixth(F),
+    Seventh(G),
 }
 
-impl<A, B, C, D> Either<A, B, C, D> {
+impl<A, B, C, D, E, F, G> Either<A, B, C, D, E, F, G> {
     /// Check if the type of the parsed value is the first one.
     pub fn is_first(&self) -> bool {
         matches!(self, Either::First(_))
@@ -473,10 +545,31 @@ impl<A, B, C, D> Either<A, B, C, D> {
     pub fn is_fourth(&self) -> bool {
         matches!(self, Either::Fourth(_))
     }
+    /// Check if the type of the parsed value is the fifth one.
+    pub fn is_fifth(&self) -> bool {
+        matches!(self, Either::Fifth(_))
+    }
+    /// Check if the type of the parsed value is the sixth one.
+    pub fn is_sixth(&self) -> bool {
+        matches!(self, Either::Sixth(_))
+    }
+    /// Check if the type of the parsed value is the seveth one.
+    pub fn is_seventh(&self) -> bool {
+        matches!(self, Either::Seventh(_))
+    }
 }
 
 /// Imlement [ParseMore] for the [Either] type.
-impl<A: ParseMore, B: ParseMore, C: ParseMore, D: ParseMore> ParseMore for Either<A, B, C, D> {
+impl<
+        A: ParseMore,
+        B: ParseMore,
+        C: ParseMore,
+        D: ParseMore,
+        E: ParseMore,
+        F: ParseMore,
+        G: ParseMore,
+    > ParseMore for Either<A, B, C, D, E, F, G>
+{
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut err;
         match input.fork().parse::<ParseMoreWrapper<A>>() {
@@ -499,6 +592,22 @@ impl<A: ParseMore, B: ParseMore, C: ParseMore, D: ParseMore> ParseMore for Eithe
             Ok(_) => {
                 return Ok(Self::Fourth(
                     input.parse::<ParseMoreWrapper<D>>().unwrap().0,
+                ))
+            }
+            Err(e) => err.combine(e),
+        }
+        match input.fork().parse::<ParseMoreWrapper<E>>() {
+            Ok(_) => return Ok(Self::Fifth(input.parse::<ParseMoreWrapper<E>>().unwrap().0)),
+            Err(e) => err.combine(e),
+        }
+        match input.fork().parse::<ParseMoreWrapper<F>>() {
+            Ok(_) => return Ok(Self::Sixth(input.parse::<ParseMoreWrapper<F>>().unwrap().0)),
+            Err(e) => err.combine(e),
+        }
+        match input.fork().parse::<ParseMoreWrapper<G>>() {
+            Ok(_) => {
+                return Ok(Self::Seventh(
+                    input.parse::<ParseMoreWrapper<G>>().unwrap().0,
                 ))
             }
             Err(e) => err.combine(e),
