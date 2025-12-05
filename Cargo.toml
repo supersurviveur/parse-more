@@ -14,7 +14,7 @@ exclude = [
 [dependencies]
 proc-macro2 = "1"
 syn = { version = "2", features = ["full"] }
-parse-more-macros = { path = "parse-more-macros", version = "0.1.0" }
+parse-more-macros = { path = "parse-more-macros", version = "0.1.1" }
 
 [dev-dependencies]
 quote = "1"
